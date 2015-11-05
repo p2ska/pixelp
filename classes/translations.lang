@@ -1,0 +1,10 @@
+// translations
+
+prev				=> Eelmine :: Previous ;;
+next				=> Järgmine :: Next ;;
+save				=> Salvesta :: Save ;;
+close				=> Sulge :: Close ;;
+found				=> Leitud kirjeid :: Matches found ;;
+notfound			=> Ei leidnud midagi! :: Nothing found! ;;
+search				=> Otsi :: Search ;;
+pref				=> {{cogs}} Seadistused :: {{cogs}} Preferences ;;

@@ -17,6 +17,8 @@ class TRANSLATIONS {
 
 		if (isset($_SESSION["lang"]))
 			$this->lang = $_SESSION["lang"];
+		else
+			$this->lang = TR_DEFAULT;
 	}
 
 	function import($file, $force_lang = false) {
