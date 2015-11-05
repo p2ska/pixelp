@@ -1,1 +1,5 @@
-nothing interesting here!
+<?php
+
+require_once("main.php");
+
+?>
