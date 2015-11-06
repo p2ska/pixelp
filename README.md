@@ -1,4 +1,4 @@
-piXelp
+pixelp
 ------
 Yet another gallery [jQuery/PHP]
 
