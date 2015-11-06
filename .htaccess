@@ -1,0 +1,10 @@
+Options +FollowSymLinks
+RewriteEngine On
+
+RewriteRule ^([a-zA-Z0-9#\-\/]*)$ /pixelp/main.php?path=$1 [L]
+
+#RewriteRule ^id/([0-9]+)$ /download.php?id=$1 [L]
+#RewriteRule ^teema/([0-9]+)/?([0-9]*)$ /index.php?leht=teema&teema=$1&aasta=$2 [L]
+#RewriteRule ^dokument/([0-9]+)$ /index.php?leht=dokument&dokument=$1 [L]
+#RewriteRule ^kustuta/([0-9]+)/([0-9]*)$ /index.php?leht=kustuta&teema=$1&dokument=$2 [L]
+#RewriteRule ^(otsing|kontakt|uued|logi*)$ /index.php?leht=$1 [L]

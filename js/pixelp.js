@@ -1,10 +1,47 @@
-var ptable_url = "pixelp.php";
+var prefix = "pixelp",
+	root = "/" + prefix + "/",
+	path = $("#" + prefix + "_content").data("path"),
+	history = window.History,
+	state = history.getState(),
+	lang;
+
+history.Adapter.bind(window, "statechange", function() {
+	state = history.getState();
+	path = state.data["path"];
+	navigate(path);
+});
+
+$("." + prefix + "_album").click(function() {
+	var switch_path = $(this).data("path");
+
+	if (path != switch_path) {
+		navigate(switch_path);
+		history.pushState({ path: switch_path }, false, root + switch_path);
+		path = switch_path;
+	}
+});
+
+function navigate(to) {
+	$("#" + prefix + "_path").html("path: " + to);
+	$("#" + prefix + "_content").load(root + prefix + ".php?path=" + to);
+}
+
+$(document).ready(function() {
+	navigate(path);
+});
 
 (function($) {
     $.fn.pixelp = function() {
-        var prefix      = "#pixelp_",
-            debug       = false,
+        var module		= "pixelp.php",
+			path		= $(prefix + "_content").data("path"),
+            debug       = true,
             settings    = [];
+
+		// tagi järgi otsing
+
+		$(document).on("click", prefix + "_tag", function() {
+			alert($(this).data("tag"));
+		});
 
         // korralikum logi formaatimine
 

@@ -3,6 +3,8 @@
 session_name("pixelp");
 session_start();
 
+$path = $_GET["path"];
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -13,8 +15,11 @@ session_start();
 <title>piXelp</title>
 </head>
 <body>
-<div id="content" class="pixelp"></div>
+<div id="pixelp_path"></div>
+<div id="pixelp_tags"><span class="pixelp_tag" data-tag="nature">Nature</span></div>
+<div id="pixelp_content" data-path="<?php echo $path; ?>"></div>
 <script type="text/javascript" src="js/jquery.js"></script>
+<script type="text/javascript" src="js/jquery.history.js"></script>
 <script type="text/javascript" src="js/store.min.js"></script>
 <script type="text/javascript" src="js/pixelp.js"></script>
 </body>
