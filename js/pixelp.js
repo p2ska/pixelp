@@ -33,7 +33,6 @@ $(document).ready(function() {
 (function($) {
     $.fn.pixelp = function() {
         var module		= "pixelp.php",
-			path		= $(prefix + "_content").data("path"),
             debug       = true,
             settings    = [];
 

@@ -40,6 +40,9 @@ class DATABASE {
 			return $this->error();
 
 		if ($values) {
+			if (!is_array($values))
+				$values = [ $values ];
+
 			foreach ($values as $value) {
 				$this->query = "set @param". $param_count. " = '". mysql_real_escape_string($value). "'";
 				$param[] = "@param". $param_count;
@@ -56,8 +59,12 @@ class DATABASE {
 		$this->query = "execute prep_query". $using;
 
 		$this->result = @mysql_query($this->query, $this->connection);
+
 		$this->rows = @mysql_num_rows($this->result);
 		$this->insert_id = @mysql_insert_id($this->connection);
+
+		$this->error = @mysql_errno($this->connection);
+		$this->error_msg = @mysql_error($this->connection). " [". $this->query. "]";
 
 		return $this->result;
 	}
