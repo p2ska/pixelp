@@ -18,6 +18,10 @@ $path = $_GET["path"];
 <div id="pixelp_path"></div>
 <div id="pixelp_tags"><span class="pixelp_tag" data-tag="nature">Nature</span></div>
 <div id="pixelp_content" data-path="<?php echo $path; ?>"></div>
+
+<div id="import_btn">Impordi</div>
+<div id="import_list"></div>
+
 <script type="text/javascript" src="js/jquery.js"></script>
 <script type="text/javascript" src="js/jquery.history.js"></script>
 <script type="text/javascript" src="js/store.min.js"></script>

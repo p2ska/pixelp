@@ -1,22 +1,22 @@
 var prefix = "pixelp",
 	root = "/" + prefix + "/",
 	path = $("#" + prefix + "_content").data("path"),
-	history = window.History,
-	state = history.getState(),
+	//history = window.History,
+	//state = history.getState(),
 	lang;
 
-history.Adapter.bind(window, "statechange", function() {
+/*history.Adapter.bind(window, "statechange", function() {
 	state = history.getState();
 	path = state.data["path"];
 	navigate(path);
-});
+});*/
 
 $("." + prefix + "_album").click(function() {
 	var switch_path = $(this).data("path");
 
 	if (path != switch_path) {
-		navigate(switch_path);
-		history.pushState({ path: switch_path }, false, root + switch_path);
+		//navigate(switch_path);
+		//history.pushState({ path: switch_path }, false, root + switch_path);
 		path = switch_path;
 	}
 });
@@ -27,7 +27,7 @@ function navigate(to) {
 }
 
 $(document).ready(function() {
-	navigate(path);
+	//navigate(path);
 });
 
 (function($) {
@@ -93,3 +93,21 @@ $(document).ready(function() {
 
 	$().pixelp();
 }(jQuery));
+
+/* triggers */
+
+$("#import_btn").click(function() {
+	$.ajax({
+		url: "import.php",
+        method: "POST",
+        data: {
+		},
+		error: function(xhr, ajaxOptions, thrownError) {
+			alert("got problems");
+			//if (xhr.status != 200)
+				//location.reload();
+		}
+	}).done(function(content) {
+		$("#import_list").append(content);
+	});
+});

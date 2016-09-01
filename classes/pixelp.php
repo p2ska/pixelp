@@ -20,12 +20,16 @@ class PIXELP_IMPORT {
 		if (!$this->folder || !$dir)
 			return false;
 
+		$this->db->query("delete from import_queue");
+
 		while ($file = readdir($dir)) {
 			if ($file[0] != ".") {
 				$path = ROOT_PATH. IMPORT_PATH. $file;
 
+				// hetkel lisame kõik kohe QUEUE_WAITING, ehk täitmiseks
+
 				if (!is_dir($path))
-					$this->db->query("insert into import_queue (file, folder, added) values (?, ?, now())", [ $path, $this->folder ]);
+					$this->db->query("insert into import_queue (file, folder, added, status) values (?, ?, ?, ?)", [ $path, $this->folder, date(SQL_DATETIME), QUEUE_WAITING ]);
 			}
 		}
 	}
@@ -36,9 +40,8 @@ class PIXELP_IMPORT {
 		$this->db->query("select id, file, folder from import_queue where status = ? order by id limit 1", QUEUE_WAITING);
 		$photo = $this->db->get_obj();
 
-		// impordi ootel olevad failid
-
 		if ($photo && file_exists($photo->file)) {
+
 			$type = exif_imagetype($photo->file);
 
 			// lubatud on hetkel vaid jpg & png (todo: videofailid?)
@@ -46,31 +49,35 @@ class PIXELP_IMPORT {
 			if ($type == IMAGETYPE_JPEG || $type == IMAGETYPE_PNG) {
 				// loo uus pildikirje
 
-				$uid = $this->init_photo($photo->folder);
+				$id = $this->init_photo($photo->folder);
 
-				if ($uid) {
-					$photo_path = ROOT_PATH. STORAGE_PATH. $photo->folder. "/". $uid;
+				if ($id) {
+					$photo_path = ROOT_PATH. STORAGE_PATH. $photo->folder. "/". $id;
 
-					$this->update_photo($uid, $photo->file);
+					$this->update_photo($id, $photo->file);
 
 					if (@rename($photo->file, $photo_path)) {
 						$this->db->query("update import_queue set status = ? where id = ?", [ QUEUE_SUCCESS, $photo->id ]);
 
-						$this->resize_photo($uid, 1);
+						$this->resize_photo($id, 1);
 					}
 				}
 				else {
-					echo "cant get uid";
+					$this->db->query("update import_queue set status = ? where id = ?", [ QUEUE_FAILURE, $photo->id ]);
+
+					return false;
 				}
 			}
 		}
+
+		return true;
 	}
 
 	// uuenda foto infot
 
-	function update_photo($uid, $path) {
+	function update_photo($id, $path) {
 		if (file_exists($path)) {
-			$this->db->query("select * from photos where id = ?", $uid);
+			$this->db->query("select * from photos where id = ?", $id);
 
 			if ($this->db->rows) {
 				$photo = $this->db->get_obj();
@@ -82,13 +89,13 @@ class PIXELP_IMPORT {
 				}
 
 				$this->db->query("update photos set shoot_date = ?, exif = ?, changed = now() where id = ?",
-					[ $photo->shoot_date, json_encode($exif), $uid ]);
+					[ $photo->shoot_date, json_encode($exif), $id ]);
 			}
 		}
 	}
 
-	function resize_photo($uid, $version, $from_resized = false) {
-		$this->db->query("select * from photos where id = ?", $uid);
+	function resize_photo($id, $version, $from_resized = false) {
+		$this->db->query("select * from photos where id = ?", $id);
 
 		if ($this->db->rows) {
 			$photo = $this->db->get_obj();
@@ -113,7 +120,7 @@ class PIXELP_IMPORT {
 				imagedestroy($original_img);
 				imagedestroy($resized_img);
 
-				$this->db->query("select id from resizes where photo_id = ? && version = ?", [ $uid, $version ]);
+				$this->db->query("select id from resizes where photo_id = ? && version = ?", [ $id, $version ]);
 
 				if ($this->db->rows) {
 					$obj = $this->db->get_obj();
@@ -123,7 +130,7 @@ class PIXELP_IMPORT {
 				}
 				else
 					$this->db->query("insert into resizes (photo_id, version, width, height, changed, created) values (?, ?, ?, ?, now(), now())",
-						[ $uid, $version, $resized_width, $resized_height ]);
+						[ $id, $version, $resized_width, $resized_height ]);
 
 				return true;
 			}
@@ -139,17 +146,17 @@ class PIXELP_IMPORT {
 
 		// proovi lisada uus kirje
 
-		while ($count++ < UID_TRIES) {
-			$uid = $this->generate_uid();
+		while ($count++ < ID_TRIES) {
+			$id = $this->generate_id();
 
-			echo $uid. " [". $folder. "]<br/>";
+			echo $id. " [". $folder. "]<br/>";
 
-			$this->db->query("insert into photos (id, folder, changed, created) values (?, ?, now(), now())", [ $uid, $folder ]);
+			$this->db->query("insert into photos (id, folder, changed, created) values (?, ?, now(), now())", [ $id, $folder ]);
 
 			// uue elemendi lisamine õnnestus
 
 			if ($this->db->error == 0)
-				return $uid;
+				return $id;
 		}
 
 		return false;
@@ -162,31 +169,31 @@ class PIXELP_IMPORT {
 
 		// proovi lisada uus kaust
 
-		while ($count++ < UID_TRIES) {
-			$uid = $this->generate_uid();
-			$folder = ROOT_PATH. STORAGE_PATH. $uid;
+		while ($count++ < ID_TRIES) {
+			$id = $this->generate_id();
+			$folder = ROOT_PATH. STORAGE_PATH. $id;
 
 			// kas õnnestus uue kausta lisamine?
 
 			if (@mkdir($folder)) {
-				$this->folder = $uid;
+				$this->folder = $id;
 
-				return $uid;
+				return $id;
 			}
 		}
 
 		return false;
 	}
 
-	// genereeri uid, etteantud karakterite järgi
+	// genereeri id, etteantud karakterite järgi
 
-	function generate_uid($length = UID_LENGTH) {
+	function generate_id($length = ID_LENGTH) {
 		$result = "";
 
-    	$len = strlen(UID_CHARS);
+    	$len = strlen(ID_CHARS);
 
     	for ($a = 0; $a < $length; $a++)
-        	$result .= UID_CHARS[rand(0, $len - 1)];
+        	$result .= ID_CHARS[rand(0, $len - 1)];
 
 		return $result;
 	}
