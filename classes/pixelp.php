@@ -59,7 +59,8 @@ class PIXELP_IMPORT {
 					if (@rename($photo->file, $photo_path)) {
 						$this->db->query("update import_queue set status = ? where id = ?", [ QUEUE_SUCCESS, $photo->id ]);
 
-						$this->resize_photo($id, 1);
+						$this->resize_photo($id, 1, 600, "height");
+						$this->resize_photo($id, 2, 100, "square", 1);
 					}
 				}
 				else {
@@ -94,30 +95,83 @@ class PIXELP_IMPORT {
 		}
 	}
 
-	function resize_photo($id, $version, $from_resized = false) {
+	// pildi skaleerimine
+
+	function resize_photo($id, $version, $max, $side, $from_resized = false) {
 		$this->db->query("select * from photos where id = ?", $id);
 
 		if ($this->db->rows) {
 			$photo = $this->db->get_obj();
 
-			if (!$from_resized)
-				$original_path = ROOT_PATH. STORAGE_PATH. $photo->folder. "/". $photo->id;
-			else
-				$original_path = ROOT_PATH. STORAGE_PATH. $photo->folder. "/". $photo->id. "_". $from_resized;
+			// kui on juba vähendatud variant olemas, millest veel väiksem teha, siis kasuta seda võimalus - kiirem
 
-			$resized_path = ROOT_PATH. STORAGE_PATH. $photo->folder. "/". $photo->id. "_". $version;
+			if ($from_resized)
+				$source_path = ROOT_PATH. STORAGE_PATH. $photo->folder. "/". $photo->id. "_". $from_resized;
+			else
+				$source_path = ROOT_PATH. STORAGE_PATH. $photo->folder. "/". $photo->id;
 
 			if (file_exists($original_path)) {
-				$info = getimagesize($original_path);
-				$original_img = imagecreatefromjpeg($original_path);
+				$resized_path = ROOT_PATH. STORAGE_PATH. $photo->folder. "/". $photo->id. "_". $version;
 
-				$resized_width = 800;
-				$resized_height = 600;
+				list($source_width, $source_height) = getimagesize($source_path);
 
-				$resized_img = imagescale($original_img, $resized_width, $resized_height,  IMG_BICUBIC_FIXED);
+				// mis külg on pikem ja mis on laiuse/kõrguse suhe
+
+				if ($source_width >= $source_height)
+					$long_side = "width";
+				else
+					$long_side = "height";
+
+				$source_aspect = $source_width / $source_height;
+
+				$resized_x = 0 $resized_y = 0;
+				$source_x = 0; $source_y = 0;
+
+				switch ($side) {1600x800 | width: 800x400
+					case "width":
+						$resized_width = $max;
+						$resized_height = $source_height / ($source_width / $max);
+
+						break;
+
+					case "height":
+						$resized_height = $max;
+						$resized_width = $source_width / ($source_height / $max);
+
+						break;
+
+					case "square":
+						$resized_width = $resized_height = $max;
+
+						/*if ($long_side == "width") {
+							$resized_x = $resized_width / 2;
+							$resized_y = $resized_height
+						}*/
+
+						break;
+					case "area":
+
+						break;
+
+					default:
+
+						break;
+				}
+
+				//$resized_width = 800;
+				//$resized_height = 600;
+
+				$source_img = imagecreatefromjpeg($source_path);
+				$resized_img = imagecreatetruecolor($resized_width, $resized_height);
+
+				imagecopyresampled(
+					$source_img, $resized_img,
+					$resized_x, $resized_y, $source_x, $source_y,
+					$resized_width, $resized_height, $source_width, $source_height
+				);
 
 				imagejpeg($resized_img, $resized_path);
-				imagedestroy($original_img);
+				imagedestroy($source_img);
 				imagedestroy($resized_img);
 
 				$this->db->query("select id from resizes where photo_id = ? && version = ?", [ $id, $version ]);
@@ -128,9 +182,10 @@ class PIXELP_IMPORT {
 					$this->db->query("update resizes set width = ?, height = ?, changed = now() where id = ?",
 						[ $resized_width, $resized_height, $obj->id ]);
 				}
-				else
+				else {
 					$this->db->query("insert into resizes (photo_id, version, width, height, changed, created) values (?, ?, ?, ?, now(), now())",
 						[ $id, $version, $resized_width, $resized_height ]);
+				}
 
 				return true;
 			}
